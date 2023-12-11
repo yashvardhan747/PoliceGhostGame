@@ -7,7 +7,7 @@
 
 import UIKit
 
-enum CellType {     // Assigning Different Color for different Cell Types
+enum CellType {
     case police
     case ghost
     case normal
@@ -24,9 +24,17 @@ enum CellType {     // Assigning Different Color for different Cell Types
     }
 }
 
-struct Point {
+struct Point: Equatable {
+    static func == (lhs: Point, rhs: Point) -> Bool {
+        return lhs.r == rhs.r && lhs.c == rhs.c
+    }
+    
     let r: Int
     let c: Int
+}
+
+protocol SecondScreenViewModelDelegate: AnyObject {
+    func reloadCollectionView()
 }
 
 final class SecondScreenViewModel{
@@ -36,13 +44,31 @@ final class SecondScreenViewModel{
     private var policeLoc = Point(r: 0, c: 0)
     private var ghostLoc = Point(r: 0, c: 0)
     
+    weak var delegate: SecondScreenViewModelDelegate?
+    
     init(row: Int, col: Int) {
         self.row = row
         self.col = col
     }
     
+    func getColor(_ r: Int, _ c: Int) -> UIColor {
+        if(r == policeLoc.r && c == policeLoc.c) {
+            return CellType.police.getColor
+        }
+        
+        if(r == ghostLoc.r && c == ghostLoc.c) {
+            return CellType.ghost.getColor
+        }
+        
+        return CellType.normal.getColor
+    }
+}
+
+//MARK: - Police and Ghost point generation
+
+extension SecondScreenViewModel {
     private func isValid(_ p1: Point, _ p2: Point) -> Bool {
-        return Set<Int>([p1.r, p2.r, p1.c, p2.c]).count == 4
+        return (p1.r != p2.r) && (p1.c != p2.c)
     }
     
     private func generateValidTwoRandomPoints() -> (Point, Point) {
@@ -67,22 +93,10 @@ final class SecondScreenViewModel{
         ghostLoc = points.1
     }
     
-    func getColor(_ r: Int, _ c: Int) -> UIColor {
-        if(r == policeLoc.r && c == policeLoc.c) {
-            return CellType.police.getColor
-        }
-        
-        if(r == ghostLoc.r && c == ghostLoc.c) {
-            return CellType.ghost.getColor
-        }
-        
-        return CellType.normal.getColor
-    }
-    
-    func updatePoliceLoc() {         // Update the location of police, after that reload CollectionView will be called from the View Controller
+    func updatePoliceLoc() {
         var p = Point(r: 0, c: 0)
         
-        while(isValid(p, ghostLoc) == false && isValid(policeLoc, p) == false) {
+        while (p == policeLoc || p == ghostLoc) {
             let r = Int.random(in: 0..<row)
             let c = Int.random(in: 0..<col)
             
@@ -90,12 +104,18 @@ final class SecondScreenViewModel{
         }
         
         policeLoc = p
+        
+        delegate?.reloadCollectionView()
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            self.updateGhostLoc()
+        }
     }
     
-    func updateGhostLoc() {        // Update the location of Ghost, after that reload CollectionView will be called from the View Controller
+    private func updateGhostLoc() {
         var p = Point(r: 0, c: 0)
         
-        while(isValid(p, policeLoc) == false && isValid(ghostLoc, p) == false) {
+        while p == ghostLoc || isValid(p, policeLoc) == false {
             let r = Int.random(in: 0..<row)
             let c = Int.random(in: 0..<col)
             
@@ -103,5 +123,6 @@ final class SecondScreenViewModel{
         }
         
         ghostLoc = p
+        delegate?.reloadCollectionView()
     }
 }

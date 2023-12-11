@@ -13,7 +13,15 @@ class FirstScreenViewController: UIViewController {
     @IBOutlet var colNumberTextField: UITextField!
     
     @IBAction func generateButtonTapped(_ sender: UIButton) {
-//        TODO
+        if 1 < viewModel.row && 1 < viewModel.col {
+            let vm = SecondScreenViewModel(row: viewModel.row, col: viewModel.col)
+            guard let vc = SecondScreenViewController(viewModel: vm) else {return}
+            self.navigationController?.pushViewController(vc, animated: true)
+        }else {
+            let alert = UIAlertController(title: "Invalid Input", message: "Try again!", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Ok", style: .cancel))
+            self.present(alert, animated: false)
+        }
     }
     
     private var viewModel = FirstScreenViewModel()
@@ -23,12 +31,14 @@ class FirstScreenViewController: UIViewController {
         
         rowNumberTextField.delegate = self
         colNumberTextField.delegate = self
+        rowNumberTextField.keyboardType = .numberPad
+        colNumberTextField.keyboardType = .numberPad
     }
 }
 
 extension FirstScreenViewController: UITextFieldDelegate {
-    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-        guard let str = textField.text, let int = Int(str) else {return false}
+    func textFieldDidChangeSelection(_ textField: UITextField) {
+        guard let str = textField.text, let int = Int(str) else {return}
         if textField == rowNumberTextField {
             viewModel.row = int
         }
@@ -37,6 +47,6 @@ extension FirstScreenViewController: UITextFieldDelegate {
             viewModel.col = int
         }
         
-        return true
+        return
     }
 }
